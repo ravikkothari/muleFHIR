@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="getPatient" doc:id="8ae07bf9-68c4-4783-9e30-4a28a827898e" >
+		<salesforce:query doc:name="Query" doc:id="03ca5c59-7bfd-4af3-99df-78e2cf2b86b5" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[select Pid__c,Name,BillingCity,BillingState,BillingPostalCode,Phone From Account]]></salesforce:salesforce-query>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="178a5c89-9c0f-4639-9bc7-d0e3bf005e7f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="getPatientByID" doc:id="6463272c-1f78-42bf-be00-d0aace71a378" >
+		<salesforce:query doc:name="Query" doc:id="28dd7e16-9b6a-4cf7-9718-1a3afcaec7c8" config-ref="Salesforce_Config">
+			<salesforce:salesforce-query ><![CDATA[select Pid__c,Name,BillingCity,BillingState,BillingPostalCode,Phone From Account
+WHERE Pid__c =':id']]></salesforce:salesforce-query>
+			<salesforce:parameters ><![CDATA[#[output application/java
+---
+{
+	id : attributes.uriParams.id
+}]]]></salesforce:parameters>
+		</salesforce:query>
+		<ee:transform doc:name="Transform Message" doc:id="27ba0d79-3cd9-42fb-9bb3-3051737a897f" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="postPatient" doc:id="cd93121a-3ebc-4533-abea-a572ad9578ba" >
+		<ee:transform doc:name="Transform Message" doc:id="a08e2ede-0f29-4b18-a110-83ff10933afc" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+[{
+Pid__c : payload.id,
+Name: payload.name[0].use,
+BillingCity:payload.address[0].city,
+BillingState:payload.address[0].state,
+BillingPostalCode:payload.address[0].postalCode,
+Phone:payload.telecom[0].value
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:upsert objectType="Account" externalIdFieldName="Id" doc:name="Upsert" doc:id="a5c4a0c9-3c7d-4593-9fba-0b0fb10dd916" config-ref="Salesforce_Config"/>
+		<ee:transform doc:name="Transform Message" doc:id="15876dcc-639c-4c8b-b087-54a201e54e68" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
